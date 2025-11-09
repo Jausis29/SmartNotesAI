@@ -1,137 +1,105 @@
-# ------------------ SmartNotes AI App ------------------
-
 import streamlit as st
 import pdfplumber
-from io import StringIO
-from textwrap import wrap
-import google.generativeai as genai
+from google.generativeai import TextGenerationClient
 
-# ----------- CONFIG -------------
+# ---------- CONFIG ----------
+st.set_page_config(page_title="SmartNotes AI", layout="wide")
+
+# Your Gemini API Key
 API_KEY = "AIzaSyBjByrLrFQDC1EHCM1kpmf0zK32wl0qCEA"
-genai.configure(api_key=API_KEY)
 
-# ----------- PAGE SETTINGS -------------
-st.set_page_config(page_title="SmartNotes AI", page_icon="🧠", layout="wide")
+client = TextGenerationClient(api_key=API_KEY)
 
-# ----------- THEME SELECTION -------------
-theme = st.selectbox("Select Theme:", ["Warm Mode", "Dark Mode", "Neon Mode"])
-
-if theme == "Dark Mode":
-    bg_gradient = "linear-gradient(135deg,#1e1e2f,#2a2a3d)"
-    text_color = "#f0f0f5"
-    box_bg = "#2a2a3d"
-    border_color = "#3c3c50"
-    button_gradient = "linear-gradient(90deg,#4c6ef5,#15aabf)"
-elif theme == "Neon Mode":
-    bg_gradient = "linear-gradient(135deg,#0d0d0d,#1a1a1a)"
-    text_color = "#00ffea"
-    box_bg = "#1a1a1a"
-    border_color = "#00ffea"
-    button_gradient = "linear-gradient(90deg,#ff00ff,#00ffff)"
-else:  # Warm Mode
-    bg_gradient = "linear-gradient(135deg,#fdf4e6,#fff7dc)"
-    text_color = "#1F2937"
-    box_bg = "#ffffff"
-    border_color = "#e5e7eb"
-    button_gradient = "linear-gradient(90deg,#ff7f50,#ff6347)"
-
-# ----------- DEVICE TYPE -------------
-device_type = st.radio("Which device are you using?", ["Laptop/Desktop", "Mobile"], horizontal=True)
-if device_type == "Mobile":
-    textarea_height = 180
-    font_size = "14px"
-    padding_main = "10px"
-else:
-    textarea_height = 300
-    font_size = "16px"
-    padding_main = "20px"
-
-# ----------- CSS STYLING -------------
-css = f"""
+# ---------- CUSTOM CSS ----------
+st.markdown("""
 <style>
-.stApp {{
-    background: {bg_gradient};
-    font-family:'Inter',sans-serif;
-    color:{text_color};
-}}
-.stTextArea textarea, .stFileUploader div, .stSelectbox div, .stRadio div {{
-    border-radius:16px;
-    background-color:{box_bg};
-    border:1px solid {border_color};
-    font-size:{font_size};
-    padding:10px;
-    color:{text_color} !important;
-    box-shadow:none;
-}}
-.stRadio input[type=radio]:checked + label::before {{
-    background-color:#ff6347;
-}}
-.stButton button {{
-    background: {button_gradient};
-    color:white;
-    border:none;
-    border-radius:16px;
-    padding:0.8em 1.8em;
-    font-weight:600;
-    transition:0.3s;
-}}
-.stButton button:hover {{
-    opacity:0.9; transform: scale(1.05);
-}}
-footer {{
-    text-align:center;
-    color:{text_color};
-    margin-top:2em;
-    font-size:13px;
-}}
-section.main {{padding:{padding_main};}}
+/* Container padding and background */
+main .block-container{
+    padding: 2rem 3rem;
+    background-color: #FFF8F0;
+}
+
+/* Rounded input boxes */
+.stTextArea, .stTextInput, .stFileUploader {
+    border-radius: 12px;
+    border: 1px solid #DDD;
+    padding: 10px;
+    font-size: 16px;
+}
+
+/* Radio buttons styling */
+[data-baseweb="radio"] label {
+    display: flex;
+    align-items: center;
+    font-size: 16px;
+    margin-bottom: 10px;
+}
+[data-baseweb="radio"] input[type="radio"]:checked + div > div {
+    background-color: #FF6F61 !important;
+    border-color: #FF6F61 !important;
+}
+
+/* Generate button */
+.stButton>button {
+    border-radius: 12px;
+    padding: 10px 20px;
+    background-color: #FF6F61;
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+/* Footer styling */
+.footer {
+    text-align: center;
+    margin-top: 50px;
+    font-size: 14px;
+    color: #555;
+}
 </style>
-"""
-st.markdown(css, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
-# ----------- TITLE -------------
-st.title("🧠 SmartNotes AI")
-st.write("Paste text or upload PDFs to generate summaries, explanations, or quiz questions!")
+# ---------- THEME SELECTION ----------
+theme = st.radio("Select Theme Mode:", ["Warm Mode", "Dark Mode", "Neon Mode"])
+if theme == "Warm Mode":
+    st.markdown("<style>body {background-color: #FFF8F0; color: #333;}</style>", unsafe_allow_html=True)
+elif theme == "Dark Mode":
+    st.markdown("<style>body {background-color: #121212; color: #EEE;}</style>", unsafe_allow_html=True)
+elif theme == "Neon Mode":
+    st.markdown("<style>body {background-color: #0A0A0A; color: #39FF14;}</style>", unsafe_allow_html=True)
 
-# ----------- INPUT -------------
-input_type = st.radio("Select input type:", ["Paste Text", "Upload PDF"])
-text_input = ""
+# ---------- INPUT ----------
+st.title("SmartNotes AI")
+
+input_type = st.radio("Choose your input:", ["Paste Text", "Upload PDF"])
+user_input = ""
+
 if input_type == "Paste Text":
-    text_input = st.text_area("Paste your notes here:", height=textarea_height)
-else:
-    uploaded_file = st.file_uploader("Upload your PDF", type=["pdf"])
+    user_input = st.text_area("Paste your text here:", height=200)
+elif input_type == "Upload PDF":
+    uploaded_file = st.file_uploader("Upload PDF file:", type=["pdf"])
     if uploaded_file is not None:
         with pdfplumber.open(uploaded_file) as pdf:
-            text_input = "\n".join(page.extract_text() or "" for page in pdf.pages)
+            text_pages = [page.extract_text() for page in pdf.pages]
+            user_input = "\n".join(text_pages)
 
-# ----------- TASK SELECTION -------------
-task = st.selectbox("Choose action:", ["Summarize Notes", "Explain Simply", "Generate Quiz"])
-
-# ----------- GENERATE BUTTON -------------
-if st.button("🚀 Generate"):
-    if not text_input.strip():
-        st.warning("Please enter some text first!")
+# ---------- GENERATE BUTTON ----------
+if st.button("Generate Notes / Summary / Quiz"):
+    if user_input.strip() == "":
+        st.warning("Please provide text or upload a PDF first!")
     else:
-        with st.spinner("Processing with AI..."):
-            # Split text into chunks to avoid API errors
-            max_chars = 2000
-            chunks = wrap(text_input, max_chars)
-            results = []
-            for chunk in chunks:
-                if task == "Summarize Notes":
-                    prompt = "Summarize this text in clear bullet points:\n" + chunk
-                elif task == "Explain Simply":
-                    prompt = "Explain this text in simple language suitable for students:\n" + chunk
-                else:
-                    prompt = "Generate 5 quiz questions with answers based on this text:\n" + chunk
-                response = genai.generate_text(model="text-bison-001", prompt=prompt)
-                results.append(response.result)
-            final_text = "\n".join(results)
-            st.success("✅ Done!")
-            st.markdown("### 🧾 Output:")
-            st.write(final_text)
-            output = StringIO(final_text)
-            st.download_button("📥 Download Result", output.getvalue(), file_name="SmartNotes_Output.txt")
+        with st.spinner("Generating content with AI..."):
+            response = client.generate_text(
+                model="text-bison-001",
+                prompt=f"Generate concise notes, summary, and quiz questions from this content:\n\n{user_input}",
+                max_output_tokens=1024
+            )
+            st.subheader("Generated Notes / Summary / Quiz")
+            st.write(response.text)
 
-# ----------- FOOTER -------------
-st.markdown("<footer>Made with 💜 by Aarav Katri</footer>", unsafe_allow_html=True)
+# ---------- FOOTER ----------
+st.markdown("""
+<div class="footer">
+Made with ❤️ by Aarav Katri
+</div>
+""", unsafe_allow_html=True)
