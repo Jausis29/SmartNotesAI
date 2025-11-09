@@ -1,15 +1,15 @@
 import streamlit as st
 import pdfplumber
-from google.generativeai import TextGenerationClient
+from google.generativeai import TextGenerationClient  # ✅ Correct import
 
-# ---------- CONFIG ----------
+# ----------------- CONFIG -----------------
 st.set_page_config(page_title="SmartNotes AI", layout="wide")
 
 # Your Gemini API Key
 API_KEY = "AIzaSyBjByrLrFQDC1EHCM1kpmf0zK32wl0qCEA"
 client = TextGenerationClient(api_key=API_KEY)
 
-# ---------- CUSTOM CSS ----------
+# ----------------- CUSTOM CSS -----------------
 st.markdown("""
 <style>
 /* Container padding and background */
@@ -58,7 +58,7 @@ main .block-container{
 </style>
 """, unsafe_allow_html=True)
 
-# ---------- THEME SELECTION ----------
+# ----------------- THEME SELECTION -----------------
 theme = st.radio("Select Theme Mode:", ["Warm Mode", "Dark Mode", "Neon Mode"])
 if theme == "Warm Mode":
     st.markdown("<style>body {background-color: #FFF8F0; color: #333;}</style>", unsafe_allow_html=True)
@@ -67,7 +67,7 @@ elif theme == "Dark Mode":
 elif theme == "Neon Mode":
     st.markdown("<style>body {background-color: #0A0A0A; color: #39FF14;}</style>", unsafe_allow_html=True)
 
-# ---------- INPUT ----------
+# ----------------- INPUT -----------------
 st.title("SmartNotes AI")
 input_type = st.radio("Choose your input:", ["Paste Text", "Upload PDF"])
 user_input = ""
@@ -81,7 +81,7 @@ elif input_type == "Upload PDF":
             text_pages = [page.extract_text() for page in pdf.pages]
             user_input = "\n".join(text_pages)
 
-# ---------- GENERATE BUTTON ----------
+# ----------------- GENERATE BUTTON -----------------
 if st.button("Generate Notes / Summary / Quiz"):
     if user_input.strip() == "":
         st.warning("Please provide text or upload a PDF first!")
@@ -95,7 +95,7 @@ if st.button("Generate Notes / Summary / Quiz"):
             st.subheader("Generated Notes / Summary / Quiz")
             st.write(response.text)
 
-# ---------- FOOTER ----------
+# ----------------- FOOTER -----------------
 st.markdown("""
 <div class="footer">
 Made with ❤️ by Aarav Katri
