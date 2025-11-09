@@ -1,7 +1,5 @@
 # ------------------ SmartNotes AI App ------------------
 
-!pip install streamlit pdfplumber google-generativeai --quiet
-
 import streamlit as st
 import pdfplumber
 from io import StringIO
