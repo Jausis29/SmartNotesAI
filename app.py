@@ -7,7 +7,6 @@ st.set_page_config(page_title="SmartNotes AI", layout="wide")
 
 # Your Gemini API Key
 API_KEY = "AIzaSyBjByrLrFQDC1EHCM1kpmf0zK32wl0qCEA"
-
 client = TextGenerationClient(api_key=API_KEY)
 
 # ---------- CUSTOM CSS ----------
@@ -70,7 +69,6 @@ elif theme == "Neon Mode":
 
 # ---------- INPUT ----------
 st.title("SmartNotes AI")
-
 input_type = st.radio("Choose your input:", ["Paste Text", "Upload PDF"])
 user_input = ""
 
